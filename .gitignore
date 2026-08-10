@@ -1,1 +1,15 @@
+# .NET
+bin/
+obj/
+
+# Environment / secrets
 .env
+*.env
+
+# IDE
+.vs/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
