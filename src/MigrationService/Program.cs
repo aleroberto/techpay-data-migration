@@ -1,7 +1,15 @@
 ﻿using MigrationService.Data;
 
+var password = Environment.GetEnvironmentVariable("MSSQL_SA_PASSWORD");
+
+if (string.IsNullOrWhiteSpace(password))
+{
+    Console.WriteLine("Eroo DB_PASSWORD.");
+    return;
+}
+
 string connectionString =
-    "Server=techpay-sqlserver,1433;Database=LegacyDb;User Id=sa;Password="";TrustServerCertificate=True;";
+    $"Server=techpay-sqlserver,1433;Database=LegacyDb;User Id=sa;Password={password};TrustServerCertificate=True;";
 
 var database = new LegacyDbConnection(connectionString);
 
