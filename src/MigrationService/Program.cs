@@ -25,25 +25,8 @@ string newConnectionString =
 var legacyRepository = new CustomerRepository(legacyConnectionString);
 var newRepository = new NewCustomerRepository(newConnectionString);
 
-var customers = legacyRepository.GetCustomers();
+var migrationService = new CustomerMigrationService(
+    legacyRepository,
+    newRepository);
 
-Console.WriteLine($"Clientes encontrados no legado: {customers.Count}");
-
-foreach (var customer in customers)
-{
-    var newCustomer = new NewCustomer
-    {
-        CustomerId = customer.CustomerId,
-        Name = customer.Name,
-        Document = customer.Document,
-        Email = customer.Email,
-        Status = customer.Status
-    };
-
-    newRepository.InsertIfNotExists(newCustomer);
-
-    Console.WriteLine(
-        $"Cliente processado: {newCustomer.CustomerId} - {newCustomer.Name}");
-}
-
-Console.WriteLine("Migração concluída.");
+migrationService.Migrate();

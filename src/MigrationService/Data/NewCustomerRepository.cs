@@ -11,23 +11,50 @@ public class NewCustomerRepository
         _connectionString = connectionString;
     }
 
-    public void InsertIfNotExists(NewCustomer customer)
+    public DateTime? GetLastSync(string entityName)
     {
         using var connection = new SqlConnection(_connectionString);
 
         connection.Open();
 
         const string sql = """
-            IF NOT EXISTS (
-                SELECT 1
-                FROM Customers
-                WHERE CustomerId = @CustomerId
-            )
+            SELECT LastSyncAt
+            FROM MigrationControl
+            WHERE EntityName = @EntityName;
+            """;
+
+        using var command = new SqlCommand(sql, connection);
+
+        command.Parameters.AddWithValue("@EntityName", entityName);
+
+        var result = command.ExecuteScalar();
+
+        return result == null || result == DBNull.Value
+            ? null
+            : (DateTime)result;
+    }
+
+    public void Upsert(Customer customer)
+    {
+        using var connection = new SqlConnection(_connectionString);
+
+        connection.Open();
+
+        const string sql = """
+            UPDATE Customers
+            SET
+                Name = @Name,
+                Document = @Document,
+                Email = @Email,
+                Status = @Status
+            WHERE CustomerId = @CustomerId;
+
+            IF @@ROWCOUNT = 0
             BEGIN
                 INSERT INTO Customers
                     (CustomerId, Name, Document, Email, Status, CreatedAt)
                 VALUES
-                    (@CustomerId, @Name, @Document, @Email, @Status, @CreatedAt)
+                    (@CustomerId, @Name, @Document, @Email, @Status, @CreatedAt);
             END
             """;
 
@@ -39,6 +66,34 @@ public class NewCustomerRepository
         command.Parameters.AddWithValue("@Email", customer.Email);
         command.Parameters.AddWithValue("@Status", customer.Status);
         command.Parameters.AddWithValue("@CreatedAt", DateTime.UtcNow);
+
+        command.ExecuteNonQuery();
+    }
+
+    public void UpdateLastSync(string entityName, DateTime lastSync)
+    {
+        using var connection = new SqlConnection(_connectionString);
+
+        connection.Open();
+
+        const string sql = """
+            UPDATE MigrationControl
+            SET LastSyncAt = @LastSyncAt
+            WHERE EntityName = @EntityName;
+
+            IF @@ROWCOUNT = 0
+            BEGIN
+                INSERT INTO MigrationControl
+                    (EntityName, LastSyncAt)
+                VALUES
+                    (@EntityName, @LastSyncAt);
+            END
+            """;
+
+        using var command = new SqlCommand(sql, connection);
+
+        command.Parameters.AddWithValue("@EntityName", entityName);
+        command.Parameters.AddWithValue("@LastSyncAt", lastSync);
 
         command.ExecuteNonQuery();
     }

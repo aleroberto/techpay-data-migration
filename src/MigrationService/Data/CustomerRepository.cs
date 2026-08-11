@@ -11,7 +11,7 @@ public class CustomerRepository
         _connectionString = connectionString;
     }
 
-    public List<Customer> GetCustomers()
+    public List<Customer> GetCustomers(DateTime? lastSync)
     {
         var customers = new List<Customer>();
 
@@ -20,12 +20,18 @@ public class CustomerRepository
         connection.Open();
 
         const string sql = """
-            SELECT CustomerId, Name, Document, Email, Address, Status
+            SELECT CustomerId, Name, Document, Email, Address, Status, UpdatedAt
             FROM Customers
-            ORDER BY CustomerId;
+            WHERE @LastSync IS NULL OR UpdatedAt > @LastSync
+            ORDER BY UpdatedAt, CustomerId;
             """;
 
         using var command = new SqlCommand(sql, connection);
+
+        command.Parameters.AddWithValue(
+            "@LastSync",
+            (object?)lastSync ?? DBNull.Value);
+
         using var reader = command.ExecuteReader();
 
         while (reader.Read())
@@ -39,7 +45,8 @@ public class CustomerRepository
                 Address = reader.IsDBNull(reader.GetOrdinal("Address"))
                     ? null
                     : reader.GetString(reader.GetOrdinal("Address")),
-                Status = reader.GetString(reader.GetOrdinal("Status"))
+                Status = reader.GetString(reader.GetOrdinal("Status")),
+                UpdatedAt = reader.GetDateTime(reader.GetOrdinal("UpdatedAt"))
             });
         }
 
