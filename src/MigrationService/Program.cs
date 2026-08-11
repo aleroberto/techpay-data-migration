@@ -1,27 +1,21 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using MigrationService.Data;
 
-var password = Environment.GetEnvironmentVariable("MSSQL_SA_PASSWORD");
+string connectionString =
+    "Server=techpay-sqlserver,1433;Database=LegacyDb;User Id=sa;Password="";TrustServerCertificate=True;";
 
-if (string.IsNullOrWhiteSpace(password))
-{
-    Console.WriteLine("Variável MSSQL_SA_PASSWORD não configurada.");
-    return;
-}
+var database = new LegacyDbConnection(connectionString);
 
-var connectionString =
-    $"Server=host.docker.internal,1433;" +
-    $"Database=master;" +
-    $"User Id=sa;" +
-    $"Password={password};" +
-    $"TrustServerCertificate=True;";
+using var connection = database.CreateConnection();
 
 try
 {
-    await using var connection = new SqlConnection(connectionString);
-
-    await connection.OpenAsync();
+    connection.Open();
 
     Console.WriteLine("Conexão com SQL Server realizada com sucesso.");
+
+    var repository = new CustomerRepository(connectionString);
+
+    repository.ListCustomers();
 }
 catch (Exception ex)
 {
