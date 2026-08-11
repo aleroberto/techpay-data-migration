@@ -1,31 +1,49 @@
 ﻿using MigrationService.Data;
 
-var password = Environment.GetEnvironmentVariable("MSSQL_SA_PASSWORD");
+var dbPassword = Environment.GetEnvironmentVariable("MSSQL_SA_PASSWORD");
 
-if (string.IsNullOrWhiteSpace(password))
+if (string.IsNullOrWhiteSpace(dbPassword))
 {
-    Console.WriteLine("Eroo DB_PASSWORD.");
+    Console.WriteLine("Erro de senha ao conectar.");
     return;
 }
 
-string connectionString =
-    $"Server=techpay-sqlserver,1433;Database=LegacyDb;User Id=sa;Password={password};TrustServerCertificate=True;";
+string legacyConnectionString =
+    $"Server=techpay-sqlserver,1433;" +
+    $"Database=LegacyDb;" +
+    $"User Id=sa;" +
+    $"Password={dbPassword};" +
+    $"TrustServerCertificate=True;";
 
-var database = new LegacyDbConnection(connectionString);
+string newConnectionString =
+    $"Server=techpay-sqlserver,1433;" +
+    $"Database=NewDb;" +
+    $"User Id=sa;" +
+    $"Password={dbPassword};" +
+    $"TrustServerCertificate=True;";
 
-using var connection = database.CreateConnection();
+var legacyRepository = new CustomerRepository(legacyConnectionString);
+var newRepository = new NewCustomerRepository(newConnectionString);
 
-try
+var customers = legacyRepository.GetCustomers();
+
+Console.WriteLine($"Clientes encontrados no legado: {customers.Count}");
+
+foreach (var customer in customers)
 {
-    connection.Open();
+    var newCustomer = new NewCustomer
+    {
+        CustomerId = customer.CustomerId,
+        Name = customer.Name,
+        Document = customer.Document,
+        Email = customer.Email,
+        Status = customer.Status
+    };
 
-    Console.WriteLine("Conexão com SQL Server realizada com sucesso.");
+    newRepository.InsertIfNotExists(newCustomer);
 
-    var repository = new CustomerRepository(connectionString);
-
-    repository.ListCustomers();
+    Console.WriteLine(
+        $"Cliente processado: {newCustomer.CustomerId} - {newCustomer.Name}");
 }
-catch (Exception ex)
-{
-    Console.WriteLine($"Erro ao conectar ao SQL Server: {ex.Message}");
-}
+
+Console.WriteLine("Migração concluída.");

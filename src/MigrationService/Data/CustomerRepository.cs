@@ -11,14 +11,16 @@ public class CustomerRepository
         _connectionString = connectionString;
     }
 
-    public void ListCustomers()
+    public List<Customer> GetCustomers()
     {
+        var customers = new List<Customer>();
+
         using var connection = new SqlConnection(_connectionString);
 
         connection.Open();
 
         const string sql = """
-            SELECT CustomerId, Name, Document, Email
+            SELECT CustomerId, Name, Document, Email, Address, Status
             FROM Customers
             ORDER BY CustomerId;
             """;
@@ -28,70 +30,19 @@ public class CustomerRepository
 
         while (reader.Read())
         {
-            Console.WriteLine(
-                $"{reader["CustomerId"]} - " +
-                $"{reader["Name"]} - " +
-                $"{reader["Document"]} - " +
-                $"{reader["Email"]}");
+            customers.Add(new Customer
+            {
+                CustomerId = reader.GetInt32(reader.GetOrdinal("CustomerId")),
+                Name = reader.GetString(reader.GetOrdinal("Name")),
+                Document = reader.GetString(reader.GetOrdinal("Document")),
+                Email = reader.GetString(reader.GetOrdinal("Email")),
+                Address = reader.IsDBNull(reader.GetOrdinal("Address"))
+                    ? null
+                    : reader.GetString(reader.GetOrdinal("Address")),
+                Status = reader.GetString(reader.GetOrdinal("Status"))
+            });
         }
-    }
 
-    public void MigrateCustomers(
-        string targetConnectionString)
-    {
-        using var sourceConnection = new SqlConnection(_connectionString);
-        using var targetConnection = new SqlConnection(targetConnectionString);
-
-        sourceConnection.Open();
-        targetConnection.Open();
-
-        const string selectSql = """
-            SELECT CustomerId, Name, Document, Email, Status
-            FROM Customers
-            ORDER BY CustomerId;
-            """;
-
-        const string insertSql = """
-            INSERT INTO Customers
-                (CustomerId, Name, Document, Email, Status)
-            VALUES
-                (@CustomerId, @Name, @Document, @Email, @Status);
-            """;
-
-        using var selectCommand = new SqlCommand(
-            selectSql,
-            sourceConnection);
-
-        using var reader = selectCommand.ExecuteReader();
-
-        while (reader.Read())
-        {
-            using var insertCommand = new SqlCommand(
-                insertSql,
-                targetConnection);
-
-            insertCommand.Parameters.AddWithValue(
-                "@CustomerId",
-                reader["CustomerId"]);
-
-            insertCommand.Parameters.AddWithValue(
-                "@Name",
-                reader["Name"]);
-
-            insertCommand.Parameters.AddWithValue(
-                "@Document",
-                reader["Document"]);
-
-            insertCommand.Parameters.AddWithValue(
-                "@Email",
-                reader["Email"]);
-
-            insertCommand.Parameters.AddWithValue(
-                "@Status",
-                reader["Status"]);
-
-            insertCommand.ExecuteNonQuery();
-        }
+        return customers;
     }
 }
-
