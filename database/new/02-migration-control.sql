@@ -1,0 +1,5 @@
+CREATE TABLE MigrationControl
+(
+    EntityName VARCHAR(100) NOT NULL PRIMARY KEY,
+    LastSyncAt DATETIME2 NULL
+);
