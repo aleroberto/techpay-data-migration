@@ -59,7 +59,7 @@ Para os dados, serão mantidos backups e controles de migração antes do cutove
 
 ## Documentação
 
-* [Modelo legado](docs/05-modelo-legado.md)
+* [Modelo legado](docs/06-modelo-dados-legado.md)
 * [Modelo novo](docs/06-modelo-novo.md)
 * [Mapping](docs/07-mapping.md)
 
